@@ -1,0 +1,203 @@
+---
+title: "Optimizing SVM Models for Purchase Prediction in OJ Dataset"
+output: html_notebook
+---
+
+#Load the all the required libraries for the assignment
+```{r}
+library(ISLR)
+library(e1071)
+library(ROCR)
+library(caret)
+library(kernlab)
+library(randomForest)
+library(NeuralNetTools)
+library(klaR)
+library("rpart")
+library(neuralnet)
+library(rpart.plot)
+library(randomForest)
+```
+
+##** This problem involves the OJ data set which is part of the ISLR2 package. (a) Create a training set containing a random sample of 800 observations, and a test set containing the remaining observations.**##
+
+```{r}
+set.seed(3463)
+data("OJ")
+#head(OJ)
+oj = OJ
+indices = sample(1:nrow(OJ),800)
+training = oj[indices,]
+testing = oj[-indices,]
+```
+
+##**(b) Fit a support vector classifier to the training data using cost = 0.01, with Purchase as the response and the other variables as predictors. Use the summary() function to produce summary statistics, and describe the results obtained.**##
+
+```{r}
+
+svm_fit <- svm(Purchase~., data = training, kernel = "linear", cost = 0.01, scale = FALSE)
+summary(svm_fit)
+```
+
+##**Comment** : Number of support vectors are 618. 309 for CH and 309 for MM.
+
+##**(c) What are the training and test error rates?**##
+```{r}
+svm_train_pred <- predict(svm_fit, training)
+svm_test_pred <- predict(svm_fit, testing)
+train_error <- mean(svm_train_pred != training$Purchase)
+test_error <- mean(svm_test_pred != testing$Purchase)
+train_error
+test_error
+confusionMatrix(svm_test_pred, testing$Purchase)
+```
+
+##**Comment** :The train error is 23.875% and test error is 22.96296%
+
+##**(d) Use the tune() function to select an optimal cost. Consider values in the range0.01 to 10.**##
+```{r}
+svm_tune_linear = tune(svm, Purchase ~ ., data = training, kernel = "linear", ranges = list(cost = c(0.01,0.05, 0.1, 1,5,10)))
+summary(svm_tune_linear)
+```
+
+
+
+##**Comment ** : The best cost value is 0.05 which has minimum error of 17.875%.
+
+##**(e) Compute the training and test error rates using this new value for cost.**##
+```{r}
+bestmod = svm_tune_linear$best.model
+
+svm_train_pred <- predict(bestmod, training)
+svm_test_pred <- predict(bestmod, testing)
+train_error <- mean(svm_train_pred != training$Purchase)
+test_error <- mean(svm_test_pred != testing$Purchase)
+train_error
+test_error
+
+confusionMatrix(svm_test_pred, testing$Purchase)
+
+```
+
+
+##**Comment** : The train error is 17.375% and test error is 14.07407%
+
+##**(f) Repeat parts (b) through (e) using a support vector machine with a radial kernel. Use the default value for gamma.**##
+#**(b)**#
+```{r}
+svm_fit_rad <- svm(Purchase~., data = training, kernel = "radial", cost = 0.01, scale = FALSE)
+summary(svm_fit_rad)
+```
+
+
+##**Comment** : Number of support vectors are 643. 330 for CH and 313 for MM.
+
+#**(c)**#
+```{r}
+svm_train_pred <- predict(svm_fit_rad, training)
+svm_test_pred <- predict(svm_fit_rad, testing)
+train_error <- mean(svm_train_pred != training$Purchase)
+test_error <- mean(svm_test_pred != testing$Purchase)
+train_error
+test_error
+confusionMatrix(svm_test_pred, testing$Purchase)
+```
+
+##**Comment** :The train error is 39.125% and test error is 38.51852%
+
+#**(d)**#
+```{r}
+svm_tune_rad <- tune(svm, Purchase ~., data = training, kernel = "radial",
+ranges = list(cost = c(0.001, 0.005,0.01,0.05, .1, 1, 5, 10)))
+
+summary(svm_tune_rad)
+```
+
+##**Comment ** : The best cost value is 1 which has minimum error of 18.875%.
+
+#**(e)**#
+```{r}
+bestmod = svm_tune_rad$best.model
+
+svm_train_pred <- predict(bestmod, training)
+svm_test_pred <- predict(bestmod, testing)
+train_error <- mean(svm_train_pred != training$Purchase)
+test_error <- mean(svm_test_pred != testing$Purchase)
+train_error
+test_error
+
+
+confusionMatrix(svm_test_pred, testing$Purchase)
+```
+
+##**Comment** :The train error is 15.875% and test error is 14.81481%
+
+##**(g) Repeat parts (b) through (e) using a support vector machine with a polynomial kernel. Set degree = 2.**##
+
+#**(b)**#
+```{r}
+svm_fit_poly <- svm(Purchase ~., data = training, kernel = "polynomial", cost = 0.01, degree=2)
+summary(svm_fit_poly)
+```
+
+
+##**Comment** : Number of support vectors are 630. 317 for CH and 313 for MM.
+
+#**(c)**#
+
+```{r}
+svm_train_pred <- predict(svm_fit_poly, training)
+svm_test_pred <- predict(svm_fit_poly, testing)
+train_error <- mean(svm_train_pred != training$Purchase)
+test_error <- mean(svm_test_pred != testing$Purchase)
+train_error
+test_error
+
+
+confusionMatrix(svm_test_pred, testing$Purchase)
+```
+
+
+##**Comment** :The train error is 36.875% and test error is 37.03704%
+
+#**(d)**#
+
+```{r}
+svm_tune_poly <- tune(svm, Purchase ~ ., data = training, kernel = "polynomial", ranges = list(cost = c(0.001, 0.005,0.01,0.05, .1, 1, 5, 10)), degree = 2)
+summary(svm_tune_poly)
+```
+
+##**Comment ** : The best cost value is 10 which has minimum error of 19%.
+
+#**(e)**#
+
+```{r}
+bestmod = svm_tune_poly$best.model
+
+svm_train_pred <- predict(bestmod, training)
+svm_test_pred <- predict(bestmod, testing)
+train_error <- mean(svm_train_pred != training$Purchase)
+test_error <- mean(svm_test_pred != testing$Purchase)
+train_error
+test_error
+
+
+confusionMatrix(svm_test_pred, testing$Purchase)
+```
+
+##**Comment** :The train error is 15.375% and test error is 17.03704%
+
+##**(h) Overall, which approach seems to give the best results on this data?**##
+##**Answer**:Among all the approaches linear seemed to work the best.
+
+
+
+
+
+
+
+
+
+
+
+
